@@ -1,4 +1,9 @@
-Bytes and pieces of Airflow that have been useful in prior roles, mainly for brainstorming new setups
+Bytes and pieces of Airflow that have been useful in prior roles, mainly for brainstorming new setups.
+
+I'm still not happy with the resources that exist (many tutorials show you how to use Airflow but not
+how we use it in the wild and with resource constraints... which can vary greatly.) so I'm hoping that
+this will provide some info and aid to new and curious DEs. I'm also hoping that any better methods that
+are found can be shared to this project to improve it (win-win? Those are nice.)
 
 NOTE: This is meant as a side-car to airflow and not an all-encompassing project.
 This may change in the future if it's deemed easier to replicate this env with both 
@@ -33,3 +38,6 @@ Setup:
       that you can practice building ETL pipelines with
     * One example already exists, with what I've found to be one of the fastest
       and least compute-intensive ETL methods
+
+
+TODO: Give a more wholesome start-to-finish setup, and possibly record as well
