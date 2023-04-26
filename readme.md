@@ -1,4 +1,4 @@
-Bits and pieces of Airflow that have been useful in prior roles, mainly for brainstorming new setups
+Bytes and pieces of Airflow that have been useful in prior roles, mainly for brainstorming new setups
 
 NOTE: This is meant as a side-car to airflow and not an all-encompassing project.
 This may change in the future if it's deemed easier to replicate this env with both 
@@ -9,7 +9,7 @@ My current folder structure is like this:
 ```
 ~/dev
 |   airflow
-|   airflow_bits
+|   byte_of_airflow
 ```
 in that airflow and this repo are side-by-side and airflow.cfg is pointing here for DAGs/etc
 
