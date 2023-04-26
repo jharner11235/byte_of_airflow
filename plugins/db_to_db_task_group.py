@@ -1,7 +1,7 @@
-from db_to_db_operator import DBToDBOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.models.dag import DAG
 from airflow.utils.task_group import TaskGroup
+from operators.db_to_db_operator import DBToDBOperator
 
 
 def db_to_db_task_group(
