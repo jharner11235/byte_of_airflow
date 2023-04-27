@@ -204,10 +204,34 @@ def create_rand_order(connection: Connection) -> int:
     :param connection: Connection to write records with
     :return: id of inserted record
     """
-    customer_id = create_rand_customer(connection)
-    shipping_address_id = create_rand_address(connection)
+    # since we're adding new customers, we can use prior runs to get a 'new customer'
+    find_customer = """
+    select  id
+    from    source.customers
+    order by id desc
+    limit 100
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(find_customer)
+        customers = cursor.fetchall()
+    if len(customers) == 0:
+        return
+    customer_id = customers[randint(0, len(customers) - 1)][0]
+    # logically the customer would reuse their address or use a new one
+    get_last_address = f"""
+    select  shipping_address_id
+    from    source.orders
+    where customer_id = {customer_id}
+    limit 1"""
+    with connection.cursor() as cursor:
+        cursor.execute(get_last_address)
+        shipping_address_id = cursor.fetchall()
+    # if there's no address, get a new one
+    if not shipping_address_id:
+        shipping_address_id = create_rand_address(connection)
     billing_address_id = shipping_address_id
-    if randint(0, 2) < 1:
+    # rarely the 2 addresses will not align
+    if randint(0, 10) < 1:
         billing_address_id = create_rand_address(connection)
     amount = random_amount()
     now = datetime.now(tz=timezone.utc)
