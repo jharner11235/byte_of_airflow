@@ -1,42 +1,38 @@
 from typing import Any, Callable
 import sqlalchemy.future as sql
 from sqlalchemy import text
+import os
 import re
+import configparser
 from datetime import datetime, timezone
 from sqlalchemy.engine import Connection
 from faker import Faker
 from random import randint
 from airflow import settings
 from airflow.models import Connection
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-# not worried about sharing creds for local docker db
-# TODO: Rebuild as a class
+# TODO: Rebuild, probably as a class
 
 
 def build_connections() -> None:
     """
     Builds connections representing the data source and the etl target
+    Assumes that the airflow metadata db will be used
     :return: None
     """
-
+    config = configparser.ConfigParser()
+    airflow_home = os.environ.get('AIRFLOW_HOME')
+    config.read(airflow_home + '/airflow.cfg')
     # creating connections in Airflow for our ETL processes
-    host = 'localhost'
-    login = 'postgres'
-    password = 'postgrespw'
-    port = 55001
     connections = [
-        {'conn_id': 'oltp', 'database': 'postgres', 'desc': "represents our prod database, the 'source' schema"},
-        {'conn_id': 'ods', 'database': 'postgres', 'desc': "represents anything for DE: etl, stage, target schemas"}
+        {'conn_id': 'oltp', 'desc': "represents our prod database, the 'source' schema"},
+        {'conn_id': 'ods', 'desc': "represents anything for DE: etl, stage, target schemas"}
     ]
     for connection in connections:
         n_conn = Connection(
             conn_id=connection['conn_id'],
-            conn_type='Postgres',
-            host=host,
-            login=login,
-            password=password,
-            port=port,
-            schema=connection['database']
+            uri=config['database']['sql_alchemy_conn']
         )  # create a connection object
         session = settings.Session()  # get the session
         conn_name = session.query(Connection).filter(Connection.conn_id == n_conn.conn_id).first()
@@ -45,15 +41,16 @@ def build_connections() -> None:
             session.commit()  # it will insert the connection object programmatically.
 
 
-def init_database(connection: Connection) -> None:
+def init_database(target_conn: str) -> None:
     """
     Builds all underlying schemas/tables. Using SERIAL for now for source IDs for ease, may add triggers for
      created/updated cols and foreign key constraints as well to better mimic prod DBs but not necessary
     Not intended to tear down schemas for user to prevent data loss (so a user can't run twice)
     TODO: Revamp to be more DRY, as we have DDL here and column-specific inserts later for faux data creation
-    :param connection: Connection to write records with
+    :param target_conn: Name of connection to write with
     :return: None
     """
+    connection = PostgresHook(target_conn).get_conn()
     db_prep_cmds = [
         'create schema etl;',
         """create table etl.extract_executions (
@@ -149,15 +146,11 @@ def create_rand_address(connection: Connection) -> int:
     :return: id of inserted record
     """
     fake = Faker()
-    address = fake.address()
-    matches = re.search('([\w\s\.]*)\n([\w\s]*), (\w{2}) ([\d-]*)', address)
-    try:
-        address_line, city, state_cd, zip_code = matches.groups()
-    except AttributeError as e:
-        # TODO: accept deployed military addresses
-        print(f'Bad address {address}')
-        print(e)
-        raise Exception()
+    matches = None
+    while not matches:
+        address = fake.address()
+        matches = re.search('([\w\s\.]*)\n([\w\s]*), (\w{2}) ([\d-]*)', address)
+    address_line, city, state_cd, zip_code = matches.groups()
     now = datetime.now(tz=timezone.utc)
     query = """insert into source.addresses (
     address_line,
@@ -256,7 +249,8 @@ def create_rand_refund(connection: Connection) -> int | None:
     if len(refundables) == 0:
         return
     refundable_order = refundables[randint(0, len(refundables) - 1)]
-    refund_amount = random_amount(refundable_order[2])
+    # use default for random_amount to have higher likelihood of full refunds (more common IRL)
+    refund_amount = min(refundable_order[2], random_amount())
     now = datetime.now(tz=timezone.utc)
     query = """insert into source.refunds (
     order_id,
