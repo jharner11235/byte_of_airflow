@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, List
 import sqlalchemy.future as sql
 from sqlalchemy import text
 import os
@@ -139,6 +139,20 @@ def random_amount(max_value: int = 100000) -> int:
     return randint(1, max_value)
 
 
+def create_rand_data(func: Callable, connection: Connection, records: int) -> List[int]:
+    """
+    Wrapper for calling data creation functions a count of times. More DRY than iterating within each function
+    :param func: The data creation function to call
+    :param connection: Connection to pass to data creation function
+    :param records: number of times to call
+    :return:
+    """
+    ids = []
+    for _ in range(0, records):
+        ids.append(func(connection))
+    return ids
+
+
 def create_rand_address(connection: Connection) -> int:
     """
     Ideally used in a transaction block, writes a address record and returns the new id
@@ -226,9 +240,12 @@ def create_rand_order(connection: Connection) -> int:
     with connection.cursor() as cursor:
         cursor.execute(get_last_address)
         shipping_address_id = cursor.fetchall()
+    print(shipping_address_id)
     # if there's no address, get a new one
     if not shipping_address_id:
         shipping_address_id = create_rand_address(connection)
+    else:
+        shipping_address_id = shipping_address_id[0]
     billing_address_id = shipping_address_id
     # rarely the 2 addresses will not align
     if randint(0, 10) < 1:
@@ -247,7 +264,7 @@ def create_rand_order(connection: Connection) -> int:
     returning id"""
 
     with connection.cursor() as cursor:
-        cursor.execute(query, [customer_id, shipping_address_id[0], billing_address_id[0], amount, now, now])
+        cursor.execute(query, [customer_id, shipping_address_id, billing_address_id, amount, now, now])
         pk = cursor.fetchone()
         connection.commit()
     return pk[0]

@@ -5,7 +5,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python import ShortCircuitOperator, PythonOperator
-from utils.data_builder_tools import create_rand_order, create_rand_customer, create_rand_refund, create_rand_address
+from utils.data_builder_tools import create_rand_data, create_rand_order, create_rand_customer, create_rand_refund, create_rand_address
 
 
 default_args = {
@@ -48,8 +48,8 @@ with DAG(
         )
         add_data = PythonOperator(
             task_id=f"add_{data_maker['data']}",
-            python_callable=data_maker['callable'],
-            op_args={conn}
+            python_callable=create_rand_data,
+            op_kwargs={'func': data_maker['callable'], 'connection': conn, 'records': new_records}
         )
 
         hamlet >> add_data
