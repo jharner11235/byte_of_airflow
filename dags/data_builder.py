@@ -2,6 +2,7 @@ import datetime
 from random import randint
 
 from airflow import DAG
+from airflow.models import Variable
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python import ShortCircuitOperator, PythonOperator
 from utils.data_builder_tools import create_rand_order, create_rand_customer, create_rand_refund, create_rand_address
@@ -17,9 +18,13 @@ default_args = {
 target_conn = 'oltp'
 
 
-def dice_roll():
-    # TODO: grab AF var for randomness (take int 0-100 to assess how often to insert)
-    return randint(0, 2) < 1
+def dice_roll() -> bool:
+    """
+    Checks for variable `rate_of_record_creation`, and uses a 50% rate if the variable is missing
+    :return: To write or not to write, that is the answer
+    """
+    rate = Variable.get('rate_of_record_creation', default_var=50)
+    return randint(0, 99) < rate
 
 
 with DAG(
@@ -28,7 +33,7 @@ with DAG(
     schedule="* * * * *",
     catchup=False
 ) as dag:
-    # TODO: grab AF var for record cts, add more or less per run (default 1)
+    new_records = Variable.get('new_records', default_var=1)
     data_makers = [
         {'data': 'address', 'callable': create_rand_address},
         {'data': 'customer', 'callable': create_rand_customer},

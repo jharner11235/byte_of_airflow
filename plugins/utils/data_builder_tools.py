@@ -247,7 +247,7 @@ def create_rand_order(connection: Connection) -> int:
     returning id"""
 
     with connection.cursor() as cursor:
-        cursor.execute(query, [customer_id, shipping_address_id, billing_address_id, amount, now, now])
+        cursor.execute(query, [customer_id, shipping_address_id[0], billing_address_id[0], amount, now, now])
         pk = cursor.fetchone()
         connection.commit()
     return pk[0]
