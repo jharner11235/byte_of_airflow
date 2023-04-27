@@ -25,11 +25,10 @@ with DAG(
         task_id='add_connections',
         python_callable=build_connections
     )
-    conn = PostgresHook(target_conn).get_conn()
     build_databases = PythonOperator(
         task_id='build_databases',
         python_callable=init_database,
-        op_args={conn}
+        op_args={target_conn}
     )
 
     add_connections >> build_databases
