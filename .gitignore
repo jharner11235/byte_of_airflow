@@ -2,3 +2,4 @@
 scratch
 __pycache__
 logs/
+airflow-webserver.pid

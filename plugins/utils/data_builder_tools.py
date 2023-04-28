@@ -9,7 +9,7 @@ from sqlalchemy.engine import Connection
 from faker import Faker
 from random import randint
 from airflow import settings
-from airflow.models import Connection
+from airflow.models import Connection, Variable
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 # TODO: Rebuild, probably as a class
@@ -39,6 +39,23 @@ def build_connections() -> None:
         if not str(conn_name) == str(n_conn.conn_id):
             session.add(n_conn)
             session.commit()  # it will insert the connection object programmatically.
+
+
+def prep_variables() -> None:
+    """
+    Adds variables useful for DAGs
+    :return: None
+    """
+    variables = [
+        {'key': 'new_records', 'val': 1, 'description': 'The number of new records to write per pass in data_builder'},
+        {'key': 'rate_of_record_creation', 'val': 50, 'description': '%, how often to pass in data_builder'}
+    ]
+    for variable in variables:
+        Variable.set(
+            key=variable['key'],
+            value=variable['val'],
+            description=variable['description']
+        )
 
 
 def init_database(target_conn: str) -> None:

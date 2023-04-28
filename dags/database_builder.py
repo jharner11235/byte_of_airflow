@@ -3,7 +3,7 @@ import datetime
 from airflow import DAG
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python import ShortCircuitOperator, PythonOperator
-from utils.data_builder_tools import build_connections, init_database
+from utils.data_builder_tools import build_connections, prep_variables, init_database
 
 
 default_args = {
@@ -25,10 +25,14 @@ with DAG(
         task_id='add_connections',
         python_callable=build_connections
     )
+    add_variables = PythonOperator(
+        task_id='add_variables',
+        python_callable=prep_variables
+    )
     build_databases = PythonOperator(
         task_id='build_databases',
         python_callable=init_database,
         op_args={target_conn}
     )
 
-    add_connections >> build_databases
+    add_connections >> add_variables >> build_databases

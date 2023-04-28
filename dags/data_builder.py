@@ -23,7 +23,7 @@ def dice_roll() -> bool:
     Checks for variable `rate_of_record_creation`, and uses a 50% rate if the variable is missing
     :return: To write or not to write, that is the answer
     """
-    rate = Variable.get('rate_of_record_creation', default_var=50)
+    rate = int(Variable.get('rate_of_record_creation', default_var=50))
     return randint(0, 99) < rate
 
 
@@ -33,7 +33,7 @@ with DAG(
     schedule="* * * * *",
     catchup=False
 ) as dag:
-    new_records = Variable.get('new_records', default_var=1)
+    new_records = int(Variable.get('new_records', default_var=1))
     data_makers = [
         {'data': 'address', 'callable': create_rand_address},
         {'data': 'customer', 'callable': create_rand_customer},
