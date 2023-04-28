@@ -28,6 +28,13 @@ Setup:
       and least compute-intensive ETL methods
 
 
-TODO:
+TODO (So you can keep me honest!):
  * Give a more wholesome start-to-finish setup, and possibly record as well
+   * Secondary is to do so on Windows as well
+ * Blog
+   * After source data is robust and examples are finalized, a quick intro "Post-Beginners" blog on this repo
+   * Add more entries as time goes on and for each added piece
  * Build out analytics of ETL'd data using Superset
+   * Basic ecom KPIs
+ * Build API to sit on top of source db
+   * provide the same data but pull from RESTful
