@@ -32,7 +32,7 @@ def build_connections() -> None:
     for connection in connections:
         n_conn = Connection(
             conn_id=connection['conn_id'],
-            uri=config['database']['sql_alchemy_conn']
+            uri=config['database']['sql_alchemy_conn'].replace('+psycopg2', '')
         )  # create a connection object
         session = settings.Session()  # get the session
         conn_name = session.query(Connection).filter(Connection.conn_id == n_conn.conn_id).first()
@@ -71,6 +71,7 @@ def init_database(target_conn: str) -> None:
     db_prep_cmds = [
         'create schema etl;',
         """create table etl.extract_executions (
+        id serial primary key,
         table_name varchar(256) not null,
         extract_timestamp timestamp not null,
         batch_id bigint not null,

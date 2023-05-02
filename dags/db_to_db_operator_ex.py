@@ -1,55 +1,50 @@
-from datetime import datetime
+"""
+This is an example of a very basic full truncation and reload of a target table from the source database. All the work
+is hidden away in the Task Group - We pull from the source with a source query, write to a stage table, and then trunc
+and fill a target table. The source query could be as simple or complex as you'd like, though it may be ideal to do all
+heavier queries OUTSIDE the production db... many a website has crashed from a rogue query and a bump in traffic.
+
+The task group here is handy because this may just be a simple fill, but later you may want to add another 5 tasks-worth
+of work, and having all the ETL rolled up into a single TG clears up the UI.
+"""
+import pendulum
 
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from db_to_db_task_group import db_to_db_task_group
 
 
+target_schema = 'target'
+target_table = 'items'
+target_conn = 'ods'
+source_conn = 'oltp'
+source_query = 'select * from source.items'
+
 default_args = {
     'owner': 'de_team',
     'email_on_failure': False,
-    'start_date': datetime(2023, 4, 1),
+    'start_date': pendulum.datetime(2023, 4, 1, tz="America/Los_Angeles"),  # makes DAG timezone aware
     'depends_on_past': False,
     'retries': 0
 }
 
-target_schema = 'target'
-target_table = 'orders'
-source_table = 'orders'
-target_conn = 'ods'
-source_conn = 'oltp'
-query = 'select * from source.orders'
-prep_target_sql = 'truncate stage.orders'
-update_target_sql = 'insert into target.orders select * from stage.orders'
 
 with DAG(
-    dag_id='orders',
+    dag_id='oltp_to_ods_items',
     catchup=False,
-    schedule_interval='*/15 * * * *',
+    schedule_interval='0 0 * * *',   # since we're tz aware, will run at midnight PT
     default_args=default_args,
+    doc_md=__doc__,
     tags=['example']
 ) as dag:
+    # the DAG will just grab whatever is in `source` and truncate `target` and fill it
     etl_tg = db_to_db_task_group(
         dag,
         f'etl_{target_table}',
         source_conn,
-        query,
+        source_query,
         target_conn,
         target_schema,
-        target_table
+        target_table,
+        full_load=True
     )
-
-    # TODO: create task group or operator to do incremental/full ETL from stage
-    prep_target = PostgresOperator(
-        task_id='prep_target_table',
-        sql=prep_target_sql,
-        postgres_conn_id=target_conn,
-    )
-
-    from_stage = PostgresOperator(
-        task_id='update_target_table',
-        sql=update_target_sql,
-        postgres_conn_id=target_conn,
-    )
-
-    etl_tg >> prep_target >> from_stage

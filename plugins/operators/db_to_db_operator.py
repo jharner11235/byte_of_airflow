@@ -1,3 +1,4 @@
+from typing import Sequence
 from airflow.models import BaseOperator
 from airflow.hooks.base_hook import BaseHook
 from airflow.hooks.postgres_hook import PostgresHook
@@ -10,6 +11,7 @@ class DBToDBOperator(BaseOperator):
      future versions may leverage copy functions for queries returning over XXXX amount of data.
      Currently only validated with Oracle, Redshift, and Postgres, but may already work with other db types as well.
     """
+    template_fields: Sequence[str] = ("sql", "lower_bound")
 
     @apply_defaults
     def __init__(self,
@@ -19,10 +21,10 @@ class DBToDBOperator(BaseOperator):
                  source_connection_id,
                  target_connection_id,
                  itersize=20000,
-                 meta_db_conn_id='postgres_oltp',
+                 meta_db_conn_id='ods',
                  extract_executions='etl.extract_executions',
                  provide_context=True,
-                 parameters=None,
+                 lower_bound=None,
                  *args,
                  **kwargs):
         """
@@ -51,7 +53,6 @@ class DBToDBOperator(BaseOperator):
         :type provide_context: bool
         """
         super(DBToDBOperator, self).__init__(*args, **kwargs)
-        self.sql = sql
         self.target_schema = target_schema
         self.target_table = target_table
         self.source_connection_id = source_connection_id
@@ -61,8 +62,13 @@ class DBToDBOperator(BaseOperator):
         self.record_ct = 0
         self.extract_executions = extract_executions
         self.provide_context = provide_context
-        self.parameters = parameters
         self.columns = []
+        self.lower_bound = lower_bound
+        if not self.lower_bound:
+            self.lower_bound = '1900-01-01'
+        upper_bound = '{{ data_interval_end }}'
+        self.log.info(f'up: {upper_bound}, down: {upper_bound}')
+        self.sql = sql.format(lower_bound=lower_bound, upper_bound=upper_bound)
 
     def execute(self, context):
         """
@@ -81,7 +87,7 @@ class DBToDBOperator(BaseOperator):
         conn = BaseHook.get_hook(self.source_connection_id).get_conn()
         cursor = conn.cursor()
         cursor.itersize = self.itersize
-        cursor.execute(self.sql, self.parameters)
+        cursor.execute(self.sql)
         return cursor
 
     def _get_columns(self, cursor):
