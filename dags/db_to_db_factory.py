@@ -1,5 +1,13 @@
 """
-Pending docs
+This is a DAG Factory. We define a DAG class and use a list of DAGs to build each pipeline - this helps keep code DRY
+and keeps all logic relating to a Factory within one file. As time goes on, the class can be expanded if new needs
+arise. I've used a Factory like this to combine 80 DAGs into 1 file and this has helped save us a ton when making minor
+tweaks to these DAGs.
+
+The DAG class isn't built here, but you can see it in action in RS_partitioned_external_tables.py
+
+This DAG takes data from the `production db`, source.{table}, and stages in the `DW/ODS` in stage.{table}, so that we
+can delete the overlapping IDs from target.{table} before inserting the new records from stage.
 """
 from datetime import datetime
 
