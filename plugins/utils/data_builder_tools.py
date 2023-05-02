@@ -46,9 +46,27 @@ def prep_variables() -> None:
     Adds variables useful for DAGs
     :return: None
     """
+    adhoc_source_to_target = """ {
+    "source_connection": "oltp",
+    "source_query": "select c.email, o.id as order_id source.orders o join source.customers c on o.customer_id = c.id",
+    "target_connection": "ods",
+    "trunc_target": false,
+    "drop_target": false,
+    "target_schema": "target",
+    "target_table": "customer_orders",
+    "target_column_mapping": 
+    [
+      {"email": "varchar(256)"},
+      {"order_id": "integer"}
+    ]
+  }"""
     variables = [
         {'key': 'new_records', 'val': 1, 'description': 'The number of new records to write per pass in data_builder'},
-        {'key': 'rate_of_record_creation', 'val': 50, 'description': '%, how often to pass in data_builder'}
+        {'key': 'rate_of_record_creation', 'val': 50, 'description': '%, how often to pass in data_builder'},
+        {'key': 'adhoc_source_to_target_load_metadata', 'val': adhoc_source_to_target, 'description': ''},
+        {'key': 'notification_email', 'val': 'notifs@team.com', 'description': ''},
+        {'key': 'stage_data_bucket', 'val': 'etl-stage', 'description': 'S3 bucket to use for moving data'},
+        {'key': 'iam_role', 'val': 'arn:aws:iam::123456789012:role/MoveData', 'description': 'iam role for copying in RS'}
     ]
     for variable in variables:
         Variable.set(
